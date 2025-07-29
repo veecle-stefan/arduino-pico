@@ -520,19 +520,27 @@ bool TwoWire::writeReadAsync(uint8_t address, const void *wbuffer, size_t wbytes
         return false;
     }
 
-    if (!busIdle()) {
-        return false;
+    if (!busIdle())
+    {
+        if (!_dmaFinished || !_i2c->restart_on_next)
+        {
+            return false; // busy for someone else or still running
+        }
     }
 
-    if (!_dmaRunning) {
+    if (!_dmaRunning)
+    {
         beginAsync();
-        if (!_dmaRunning) {
+        if (!_dmaRunning)
+        {
             return false;
         }
     }
 
-    // Abort any ongoing transaction
-    abortAsync();
+    if (!_dmaFinished)
+    {
+        abortAsync();
+    }
 
     // Create or enlarge dma command buffer, we need one entry for every i2c byte we want to write/read
     const size_t bufLen = (wbytes + rbytes) * sizeof(uint16_t);
